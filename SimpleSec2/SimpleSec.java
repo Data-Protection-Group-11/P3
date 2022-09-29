@@ -1,5 +1,3 @@
-//package simpleSec;
-
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.security.Key;
@@ -38,9 +36,8 @@ public class SimpleSec {
 		}
 
 		SymmetricCipher s = new SymmetricCipher();
-		byte[] ePrivKey = null;
 		try {
-			ePrivKey = s.encryptCBC(pv.getEncoded(), byteKey);
+			byte[] ePrivKey = s.encryptCBC(pv.getEncoded(), byteKey);
 			
 			 // Store the public key in the file PUBLIC_KEY_FILE	  
 			OutputStream out = new FileOutputStream(PUBLIC_KEY_FILE);
@@ -56,7 +53,6 @@ public class SimpleSec {
 
 		}
 
-		
 
 		// Encrypt the private key using AES/CBC using the passphrase as key
 		
@@ -64,9 +60,9 @@ public class SimpleSec {
 	}
 	
 	public static void main(String[] args) {
-		switch (args[0]) {
+		switch ("g") {
 			case "g": 
-				
+				generate();
 			case "e":
 				// Encrypt args[1] using AES/CBC and a random AES key (session key)
 				
@@ -96,7 +92,7 @@ public class SimpleSec {
 
 				// Result is stored int he file args[2]
 			default:
-				generate();
+				
 				System.out.println("Error!");
 			}
 
