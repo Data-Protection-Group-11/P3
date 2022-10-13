@@ -1,3 +1,7 @@
+import java.io.FileDescriptor;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.security.NoSuchAlgorithmException;
 import java.security.InvalidKeyException;
 import javax.crypto.NoSuchPaddingException;

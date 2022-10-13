@@ -2,15 +2,16 @@ import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.security.Key;
 import java.security.KeyPair;
+import java.security.PrivateKey;
 import java.util.Scanner;
 
 public class SimpleSec {
 
 	//String to hold the name of the private key file.
-	public static final String PRIVATE_KEY_FILE = "./private.key";
+	public static final String PRIVATE_KEY_FILE = "./data/private.key";
 
 	// String to hold name of the public key file.
-	public static final String PUBLIC_KEY_FILE = "./public.key";
+	public static final String PUBLIC_KEY_FILE = "./data/public.key";
 
 	public static void generate(){
 		// Generate a pair of RSA keys
@@ -59,24 +60,82 @@ public class SimpleSec {
 		// Store the encrypted private key in the file "private.key"
 	}
 	
+	public static void encrypt(String sourceFile, String destinationFile){
+		
+		// Encrypt sourceFile using AES/CBC and a random AES key (session key)
+		SymmetricCipher e = new SymmetricCipher();
+
+
+		//generate a random aes key
+		KeyGenerator keyGen = KeyGenerator.getInstance("AES");
+		keyGen.init(128); // for example
+		SecretKey sessionKey = keyGen.generateKey();
+		byte[] encryptedFile = e.encryptCBC(sourceFile, sessionKey);
+
+		// Session key is encrypted using RSA and the public key
+		InputStream in = new FileInputStream(PUBLIC_KEY_FILE);
+		PublicKey pubKey = (PublicKey) in.read();
+		in.close();
+
+		// Encrypt session key using RSALIBRARY.encrypt
+		RSALibrary rsa = new RSALibrary();
+		byte[] encSessionKey = rsa.encrypt(sessionKey, pubKey);
+
+		// Concatenate encrypted session key with encrypted sourceFile
+		byte[] result = new byte[encSessionKey.length + encryptedFile.length];
+		System.arraycopy(encSessionKey, 0, result, 0, encSessionKey.length);
+		System.arraycopy(encryptedFile, 0, result, encSessionKey.length, encryptedFile.length);
+		
+		// As the private key is needed, the user will insert the previous
+		// passphrase in order to decrypt the "private.key" file
+		Scanner myObj = new Scanner(System.in);  // Create a Scanner object
+		System.out.println("Enter passphrase for signing the document");
+		String passphrase = myObj.nextLine();	// Read user input
+		byte[] byteKey = passphrase.getBytes();
+		
+		//get private key from file
+		InputStream in2 = new FileInputStream(PRIVATE_KEY_FILE);
+		PrivateKey privKey = (PrivateKey) in2.read();
+		in2.close();
+		byte[] decPrivKey = s.decryptCBC(privKey, byteKey);
+
+		//from byte[] decprivkey to private key
+		PrivateKey privK = (PrivateKey) decPrivKey;
+
+
+		// The resulting concatenation is encrypted with the private key
+		byte[] sign = rsa.sign(result, privateKey);
+		
+		//concatenate result with signature
+		byte[] finalEnc = new byte[result.length + sign.length];
+		System.arraycopy(result, 0, finalEnc, 0, result.length);
+		System.arraycopy(sign, 0, finalEnc, result.length, sign.length);
+
+		//save in destinationFile
+		FileOutputStream out = new FileOutputStream(destinationFile);
+		out.write(finalEnc);
+		out.close();
+
+
+		// The encrypted concatenation is again concatenated with the previously
+		// encrypted session key
+
+		
+	}
+
+
 	public static void main(String[] args) {
 		switch ("g") {
 			case "g": 
 				generate();
 			case "e":
-				// Encrypt args[1] using AES/CBC and a random AES key (session key)
+				String sourceFile = "./data/data.txt";
+				String destinationFile = "./data/dst.enc";
+
+				//String sourceFile = args[1];
+				//String destinationFile = args[2];
+				encrypt(sourceFile, destinationFile);
 				
-				// Session key is encrypted using RSA and the public key
-				
-				// Concatenate encrypted session key with encrypted args[1]
-				
-				// As the private key is needed, the user will insert the previous
-				// passphrase in order to decrypt the "private.key" file
-				
-				// The resulting concatenation is encrypted with the private key
-				
-				// The encrypted concatenation is again concatenated with the previously
-				// encrypted session key
 			case "d":
 				// Separate firm and payload
 
