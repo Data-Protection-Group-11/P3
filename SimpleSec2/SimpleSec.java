@@ -1,9 +1,23 @@
+import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.Key;
+import java.security.KeyFactory;
 import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Scanner;
+
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
 
 public class SimpleSec {
 
@@ -51,7 +65,7 @@ public class SimpleSec {
 			out.close();
 
 		} catch (Exception e){
-
+			e.printStackTrace();
 		}
 
 
@@ -60,26 +74,63 @@ public class SimpleSec {
 		// Store the encrypted private key in the file "private.key"
 	}
 	
-	public static void encrypt(String sourceFile, String destinationFile){
+	public static PublicKey loadPublicKey(String inputFile) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException{
+		// read public key DER file
+		File pubKeyFile = new File(inputFile);
+        DataInputStream dis = new DataInputStream(new 
+        FileInputStream(pubKeyFile));
+        byte[] pubKeyBytes = new byte[(int)pubKeyFile.length()];
+        dis.readFully(pubKeyBytes);
+        dis.close();
+		KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+		X509EncodedKeySpec pubKeySpec = new X509EncodedKeySpec(pubKeyBytes);
+		PublicKey pk = keyFactory.generatePublic(pubKeySpec);
+		return pk;
+	}
+
+
+	public static PrivateKey loadPrivateKey(String inputFile, byte[] byteKey) throws Exception, IOException, NoSuchAlgorithmException, InvalidKeySpecException{
+		// read private key from file
+		File pubKeyFile = new File(inputFile);
+        DataInputStream dis = new DataInputStream(new 
+        FileInputStream(pubKeyFile));
+        byte[] privKeyBytes = new byte[(int)pubKeyFile.length()];
+        dis.readFully(privKeyBytes);
+        dis.close();
+		
+		SymmetricCipher s = new SymmetricCipher();
+		byte[] dPrivKey = s.decryptCBC(privKeyBytes, byteKey);
+
+ 
+		// Generate KeyPair.
+		KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+		
+		PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(
+			dPrivKey);
+		PrivateKey privateKey = keyFactory.generatePrivate(privateKeySpec);
+		return privateKey;
+	}
+
+
+	public static void encrypt(String sourceFile, String destinationFile) throws Exception{
 		
 		// Encrypt sourceFile using AES/CBC and a random AES key (session key)
-		SymmetricCipher e = new SymmetricCipher();
-
+	
 
 		//generate a random aes key
 		KeyGenerator keyGen = KeyGenerator.getInstance("AES");
 		keyGen.init(128); // for example
-		SecretKey sessionKey = keyGen.generateKey();
-		byte[] encryptedFile = e.encryptCBC(sourceFile, sessionKey);
+		Key sessionKey = keyGen.generateKey();
+
+		SymmetricCipher e = new SymmetricCipher();
+		byte[] encryptedFile = e.encryptCBC(sourceFile.getBytes(), sessionKey.getEncoded());
 
 		// Session key is encrypted using RSA and the public key
-		InputStream in = new FileInputStream(PUBLIC_KEY_FILE);
-		PublicKey pubKey = (PublicKey) in.read();
-		in.close();
+		PublicKey pubKey = loadPublicKey(PUBLIC_KEY_FILE);
 
 		// Encrypt session key using RSALIBRARY.encrypt
 		RSALibrary rsa = new RSALibrary();
-		byte[] encSessionKey = rsa.encrypt(sessionKey, pubKey);
+		byte[] encSessionKey = rsa.encrypt(sessionKey.getEncoded(), pubKey);
 
 		// Concatenate encrypted session key with encrypted sourceFile
 		byte[] result = new byte[encSessionKey.length + encryptedFile.length];
@@ -92,19 +143,13 @@ public class SimpleSec {
 		System.out.println("Enter passphrase for signing the document");
 		String passphrase = myObj.nextLine();	// Read user input
 		byte[] byteKey = passphrase.getBytes();
-		
-		//get private key from file
-		InputStream in2 = new FileInputStream(PRIVATE_KEY_FILE);
-		PrivateKey privKey = (PrivateKey) in2.read();
-		in2.close();
-		byte[] decPrivKey = s.decryptCBC(privKey, byteKey);
 
-		//from byte[] decprivkey to private key
-		PrivateKey privK = (PrivateKey) decPrivKey;
+		//get the private key from its file and the passphrase provided:
+		PrivateKey privK = loadPrivateKey(PRIVATE_KEY_FILE, byteKey);
 
 
 		// The resulting concatenation is encrypted with the private key
-		byte[] sign = rsa.sign(result, privateKey);
+		byte[] sign = rsa.sign(result, privK);
 		
 		//concatenate result with signature
 		byte[] finalEnc = new byte[result.length + sign.length];
@@ -124,17 +169,25 @@ public class SimpleSec {
 	}
 
 
-	public static void main(String[] args) {
-		switch ("g") {
+	public static void main(String[] args) throws Exception{
+		//generate();
+		String sourceFile = "./data/data.txt";
+		String destinationFile = "./data/dst.enc";
+		encrypt(sourceFile, destinationFile);
+		System.out.println("Keys created");
+		
+		/*
+		
+		switch (var) {
 			case "g": 
 				generate();
 			case "e":
 				String sourceFile = "./data/data.txt";
 				String destinationFile = "./data/dst.enc";
-
+				System.out.println("!==================================!");
 				//String sourceFile = args[1];
 				//String destinationFile = args[2];
-				encrypt(sourceFile, destinationFile);
+				//encrypt(sourceFile, destinationFile);
 				
 			case "d":
 				// Separate firm and payload
@@ -154,6 +207,7 @@ public class SimpleSec {
 				
 				System.out.println("Error!");
 			}
+			*/
 
 	}
 }

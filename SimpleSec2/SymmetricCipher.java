@@ -1,3 +1,6 @@
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -18,142 +21,152 @@ public class SymmetricCipher {
     /*************************************************************************************/
 	/* Constructor method */
     /*************************************************************************************/
-	public SymmetricCipher(){
-		System.out.println("Buenatarde");
-	}
 
-	public SymmetricCipher(byte [] byteKey) {
-		
-		Path path = Paths.get("./test.txt");
-		String input = new String();
-		try {
-			input = Files.readString(path);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		byte[] inputBytes = input.getBytes();
-		
-		try {
-			byte[] result = encryptCBC(inputBytes, byteKey);
-			System.out.println(new String(result));
-			
-			OutputStream out = new FileOutputStream("./test0.enc");
-			out.write(result);
-			out.close();
-			
-			byte[] text = decryptCBC(result, byteKey);
-			System.out.println(new String(text, "UTF-8"));
-			
-			out = new FileOutputStream("./test0.dec");
-			out.write(text);
-			out.close();
-			
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		
-	}
+    public SymmetricCipher() {
+        // TODO Auto-generated constructor stub
+    }
 
     /*************************************************************************************/
 	/* Method to encrypt using AES/CBC/PKCS5 */
     /*************************************************************************************/
+
+	/*
+	 * The function encryptCBC provides a cyphering using AES, CBC mode with PKCS5 padding
+	 * 
+	 * @param input a byte array that contains the plain text to be cyphered
+	 * @param byteKey a byte array that contains the key to cypher the cipherText
+	 * @return the cyphered text with padding in a byte array
+	 */
+
 	public byte[] encryptCBC (byte[] input, byte[] byteKey) throws Exception {
 		
-		byte[] ciphertext = null;	
-		int blocksize = 16;
+		byte[] cipherText = null;	
+		int blockSize = 16;
 		
 		s = new SymmetricEncryption(byteKey);
 		
-		int padding = blocksize - (input.length % blocksize);
+		/*
+		 * 1. Calculate the padding needed (incase it is 0, we have to add a padding of the block size)
+		 * 2. Create a new array with the size of the input + padding
+		 * 3. Calculate the number of blocks needed
+		 * 4. Copy the input to the new array paddedText
+		 * 5. Add the padding to the new array paddedText
+		 * 6. Create a new array cipherText with the size of the number of blocks
+		 * 7. Enter into the ciphering for loop
+		 * 		7.1. Check if it is the first block, if it is, XOR the IV with that block 
+		 * 		7.2. If it is not the first block, XOR the previous block with the current block	
+		 * 		7.3. Encrypt the block that we XORed using the encrypt method
+		 * 		7.4. Copy the encrypted block into the byte array: previousBlock
+		 * 		7.5. Copy the encrypted block into the cipherText array
+		 * 8. Return the cipherText array with the fully encrypted text with padding
+		 */ 
+
 		
+		int padding = blockSize - (input.length % blockSize);
+		
+		// Create a new array with the size of the input plus the padding
+
 		if(padding == 0) {
-			padding = blocksize;
+			padding = blockSize;
 		}
 		
-		int text_length = input.length + padding;
-		byte[] padded_text = new byte[text_length];
+		int textLength = input.length + padding;
+		byte[] paddedText = new byte[textLength];
+		int nBlocks = paddedText.length / blockSize;
 		
-		for ( int i = 0; i < input.length; i++) padded_text[i] = input[i];
-		
-		ciphertext = new byte[text_length];
-		
-		for(int i = 0; i < padding; i++) padded_text[input.length + i] = (byte)padding;
+		System.arraycopy(input, 0, paddedText, 0, input.length);		
+		for(int i = 0; i < padding; i++) paddedText[input.length + i] = (byte) padding;
 
-		int n_blocks = padded_text.length / blocksize;
-		
-			// Generate the plaintext with padding
-		byte[] previous_block =  new byte[16];
-		for(int i = 0; i < n_blocks; i++) {
+		cipherText = new byte[textLength];
+		byte[] previousBlock =  new byte[16];
+
+		/* For loop to encrypt each block */
+		for(int i = 0; i < nBlocks; i++) {
 			
-			byte[] xor_block = new byte[16];
-			for(int j = 0; j < blocksize; j++) {
+			byte[] xorBlock = new byte[16];
+			for(int j = 0; j < blockSize; j++) {
 				if(i == 0) {
-					xor_block[j] = (byte)(padded_text[j] ^ iv[j]);
+					xorBlock[j] = (byte)(paddedText[j] ^ iv[j]);
 				}else {
-					xor_block[j] = (byte)(padded_text[j+(i*blocksize)] ^ previous_block[j]);
+					xorBlock[j] = (byte)(paddedText[j+(i*blockSize)] ^ previousBlock[j]);
 				}
 			}
 			
-			previous_block = s.encryptBlock(xor_block);
-			
-			System.arraycopy(previous_block, 0, ciphertext, (i)*blocksize, blocksize);
+			previousBlock = s.encryptBlock(xorBlock);
+			System.arraycopy(previousBlock, 0, cipherText, (i)*blockSize, blockSize);
 
 		}
-			// Generate the ciphertext
 		
-		return ciphertext;
+		return cipherText;
 	}
 	
 	/*************************************************************************************/
 	/* Method to decrypt using AES/CBC/PKCS5 */
     /*************************************************************************************/
 	
-	
+	/*
+	 * The function decryptCBC provides a decyphering using AES, CBC mode with PKCS5 padding
+	 * 
+	 * @param input a byte array that contains the cipherText to be decrypted
+	 * @param byteKey a byte array that contains the key to decrypt the cipherText
+	 * @return the decrypted text in a byte array
+	 */
+
 	public byte[] decryptCBC (byte[] input, byte[] byteKey) throws Exception {
 	
-		int blocksize = 16;
-		int n_block = input.length / blocksize;
-		byte [] finalplaintext = new byte[input.length];
-		byte[] current_block = new byte[blocksize];
+		int blockSize = 16;
+		int nBlock = input.length / blockSize;
+		byte [] finalPlainText = new byte[input.length];
+		byte[] currentBlock = new byte[blockSize];
 		
 		d = new SymmetricEncryption(byteKey);
 		
 		
-		byte[] previous_block =  new byte[16];
+		byte[] previousBlock =  new byte[16];
 		
-		for(int i = 1; i <= n_block; i++) {
-			System.arraycopy(input, (i-1)*blocksize, current_block, 0, blocksize);
-			byte[] decrypted_block =  new byte[16];
-			decrypted_block = d.decryptBlock(current_block);
-			byte[] xor_block = new byte[16];
+		/*
+		 * The for loop iterates over the number of blocks
+		 * and decrypts each block
+		 */
+
+		for(int i = 1; i <= nBlock; i++) {
+			System.arraycopy(input, (i-1)*blockSize, currentBlock, 0, blockSize);
+			byte[] decryptedBlock =  new byte[16];
+			decryptedBlock = d.decryptBlock(currentBlock);
+			byte[] xorBlock = new byte[16];
 			
-			for(int j = 0; j < blocksize; j++) {
+			/*
+			 * The second for loop iterates over the blockSize
+			 * and performs the XOR operation for each byte
+			 *
+			 * Inside, the if statement checks if the block is the first block
+			 * and if it is, it uses the initialization vector
+			 * to decrypt the block
+			 */
+
+			for(int j = 0; j < blockSize; j++) {
 				if(i == 1) {
-					xor_block[j] = (byte)(decrypted_block[j] ^ iv[j]);
+					xorBlock[j] = (byte)(decryptedBlock[j] ^ iv[j]);
 				}else {
-					xor_block[j] = (byte)(decrypted_block[j] ^ previous_block[j]);
+					xorBlock[j] = (byte)(decryptedBlock[j] ^ previousBlock[j]);
 				}
 			}
 			
-			System.arraycopy(input, (i-1)*blocksize, previous_block, 0, blocksize);
+			System.arraycopy(input, (i-1)*blockSize, previousBlock, 0, blockSize);
 			
-			System.arraycopy(xor_block, 0, finalplaintext, (i-1)*blocksize, blocksize);
+			System.arraycopy(xorBlock, 0, finalPlainText, (i-1)*blockSize, blockSize);
 		}
 		
-		// Generate the plaintext
-		int padding = (int) finalplaintext[finalplaintext.length-1];
+		/*
+		 * The following code removes the padding, taking the last byte
+		 * value, and removing that number of bytes from the plaintext
+		 */
+
+		int padding = (int) finalPlainText[finalPlainText.length-1];
+		byte[] textNoPadding = new byte[input.length-padding];
+		System.arraycopy(finalPlainText, 0, textNoPadding, 0, input.length-padding);		
 		
-		byte[] text_no_padding = new byte[input.length-padding];
-		System.arraycopy(finalplaintext, 0, text_no_padding, 0, input.length-padding);
-		// Eliminate the padding
-		
-			
-		
-		return text_no_padding;
+		return textNoPadding;
 	}
 }
 
