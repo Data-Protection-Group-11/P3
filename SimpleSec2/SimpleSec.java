@@ -168,12 +168,78 @@ public class SimpleSec {
 		
 	}
 
+	public static void decrypt(String sourceFile, String destinationFile) throws Exception{
+		// Separate firm and payload from the sourceFile
+		File f = new File(sourceFile);
+		DataInputStream dis = new DataInputStream(new 
+		FileInputStream(f));
+		int size = (int)f.length();
+		byte[] data = new byte[size];
+		dis.read(data);
+		dis.close();
+
+		//get 128 bytes signature and the rest are for the data package
+		byte[] signature = new byte[20];
+		byte[] other = new byte[size - 20];
+		System.arraycopy(data, 0, other, 0, size - 20);
+		System.arraycopy(data, size - 20, signature, 0, 20);
+
+
+		// Verify firm
+
+		// Separate ciphertext and encrypted session key
+
+		// As private key is needed, introduce passphrase to decrypt the private.key file, and store the private key
+		Scanner myObj = new Scanner(System.in);  // Create a Scanner object
+		System.out.println("Enter password for encrypting private key");
+
+		String passphrase = myObj.nextLine();	// Read user input
+		byte[] byteKey = passphrase.getBytes();  
+
+
+		//other contains the session key and the plaintext ciphered with the session key
+		byte[] sessionKeyEnc = new byte[16];
+		System.out.println("PETA");
+		System.arraycopy(other, 0, sessionKeyEnc, 0, 16);
+		byte[] encryptedText = new byte[other.length - 16];
+		System.arraycopy(other, 16, encryptedText, 0, other.length - 16);
+
+		//get pk from file with passphrase inserted
+		PrivateKey privK = loadPrivateKey(PRIVATE_KEY_FILE, byteKey);
+
+		// Decrypt session key using RSA and private key
+		RSALibrary rsa = new RSALibrary();
+		System.out.println("AQUI?");
+
+		byte[] sessionKeyDec = rsa.decrypt(sessionKeyEnc, privK);
+		System.out.println("o aqui");
+
+		// Use the session key to decrypt the ciphertext using AES/CBC
+		SymmetricCipher s = new SymmetricCipher();
+		byte[] decryptedText = s.decryptCBC(encryptedText, sessionKeyDec);
+
+		//verify
+		//byte[] decKeySignature = rsa.verify(signature, privK);
+
+		// Result is stored int he file args[2]
+		FileOutputStream out = new FileOutputStream(destinationFile);
+		out.write(decryptedText);
+		out.close();
+
+	}
 
 	public static void main(String[] args) throws Exception{
 		//generate();
+		/*
 		String sourceFile = "./data/data.txt";
 		String destinationFile = "./data/dst.enc";
 		encrypt(sourceFile, destinationFile);
+		System.out.println("Keys created");
+		 */
+
+		String sourceFile = "./data/dst.enc";
+		String destinationFile = "./data/dst.dec";
+		decrypt(sourceFile, destinationFile);
 		System.out.println("Keys created");
 		
 		/*
