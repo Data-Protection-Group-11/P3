@@ -5,6 +5,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.Files;
 import java.security.Key;
 import java.security.KeyFactory;
 import java.security.KeyPair;
@@ -121,9 +124,22 @@ public class SimpleSec {
 		KeyGenerator keyGen = KeyGenerator.getInstance("AES");
 		keyGen.init(128); // for example
 		Key sessionKey = keyGen.generateKey();
+		System.out.println("tamaño sessionn key");
+		System.out.println(sessionKey.getEncoded().length);
 
+		
 		SymmetricCipher e = new SymmetricCipher();
-		byte[] encryptedFile = e.encryptCBC(sourceFile.getBytes(), sessionKey.getEncoded());
+
+		
+		Path path = Paths.get(sourceFile);
+        String input = new String();
+        try {
+            input = Files.readString(path);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+
+		byte[] encryptedFile = e.encryptCBC(input.getBytes(), sessionKey.getEncoded());
 
 		// Session key is encrypted using RSA and the public key
 		PublicKey pubKey = loadPublicKey(PUBLIC_KEY_FILE);
@@ -134,9 +150,10 @@ public class SimpleSec {
 
 		// Concatenate encrypted session key with encrypted sourceFile
 		byte[] result = new byte[encSessionKey.length + encryptedFile.length];
-		System.arraycopy(encSessionKey, 0, result, 0, encSessionKey.length);
-		System.arraycopy(encryptedFile, 0, result, encSessionKey.length, encryptedFile.length);
-		
+		System.arraycopy(encryptedFile, 0, result, 0, encryptedFile.length);
+		System.arraycopy(encSessionKey, 0, result, encryptedFile.length, encSessionKey.length);
+
+
 		// As the private key is needed, the user will insert the previous
 		// passphrase in order to decrypt the "private.key" file
 		Scanner myObj = new Scanner(System.in);  // Create a Scanner object
@@ -146,7 +163,6 @@ public class SimpleSec {
 
 		//get the private key from its file and the passphrase provided:
 		PrivateKey privK = loadPrivateKey(PRIVATE_KEY_FILE, byteKey);
-
 
 		// The resulting concatenation is encrypted with the private key
 		byte[] sign = rsa.sign(result, privK);
@@ -179,10 +195,10 @@ public class SimpleSec {
 		dis.close();
 
 		//get 128 bytes signature and the rest are for the data package
-		byte[] signature = new byte[20];
-		byte[] other = new byte[size - 20];
-		System.arraycopy(data, 0, other, 0, size - 20);
-		System.arraycopy(data, size - 20, signature, 0, 20);
+		byte[] signature = new byte[128];
+		byte[] other = new byte[size - 128];
+		System.arraycopy(data, 0, other, 0, size - 128);
+		System.arraycopy(data, size - 128, signature, 0, 128);
 
 
 		// Verify firm
@@ -198,21 +214,18 @@ public class SimpleSec {
 
 
 		//other contains the session key and the plaintext ciphered with the session key
-		byte[] sessionKeyEnc = new byte[16];
-		System.out.println("PETA");
-		System.arraycopy(other, 0, sessionKeyEnc, 0, 16);
-		byte[] encryptedText = new byte[other.length - 16];
-		System.arraycopy(other, 16, encryptedText, 0, other.length - 16);
+		byte[] sessionKeyEnc = new byte[128];
+		byte[] encryptedText = new byte[other.length - 128];
+		System.arraycopy(other, 0, encryptedText, 0, other.length - 128);
+		System.arraycopy(other, other.length - 128, sessionKeyEnc, 0, 128);
 
 		//get pk from file with passphrase inserted
 		PrivateKey privK = loadPrivateKey(PRIVATE_KEY_FILE, byteKey);
 
 		// Decrypt session key using RSA and private key
 		RSALibrary rsa = new RSALibrary();
-		System.out.println("AQUI?");
 
 		byte[] sessionKeyDec = rsa.decrypt(sessionKeyEnc, privK);
-		System.out.println("o aqui");
 
 		// Use the session key to decrypt the ciphertext using AES/CBC
 		SymmetricCipher s = new SymmetricCipher();
@@ -230,20 +243,20 @@ public class SimpleSec {
 
 	public static void main(String[] args) throws Exception{
 		//generate();
-		/*
+		
 		String sourceFile = "./data/data.txt";
 		String destinationFile = "./data/dst.enc";
 		encrypt(sourceFile, destinationFile);
 		System.out.println("Keys created");
-		 */
+		
 
-		String sourceFile = "./data/dst.enc";
-		String destinationFile = "./data/dst.dec";
-		decrypt(sourceFile, destinationFile);
+		String sourceFile2 = "./data/dst.enc";
+		String destinationFile2 = "./data/dst.dec";
+		decrypt(sourceFile2, destinationFile2);
 		System.out.println("Keys created");
 		
-		/*
 		
+		/*
 		switch (var) {
 			case "g": 
 				generate();
