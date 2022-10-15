@@ -31,8 +31,6 @@ public class SimpleSec {
 	public static final String PUBLIC_KEY_FILE = "./data/public.key";
 
 	public static void generate(){
-		// Generate a pair of RSA keys
-		System.out.println("caso g");
 		//"Introduce passphrase:"
 		Scanner myObj = new Scanner(System.in);  // Create a Scanner object
 		System.out.println("Enter password for encrypting private key");
@@ -55,6 +53,7 @@ public class SimpleSec {
 
 		SymmetricCipher s = new SymmetricCipher();
 		try {
+			// Encrypt the private key using AES/CBC using the passphrase as key
 			byte[] ePrivKey = s.encryptCBC(pv.getEncoded(), byteKey);
 			
 			 // Store the public key in the file PUBLIC_KEY_FILE	  
@@ -70,11 +69,6 @@ public class SimpleSec {
 		} catch (Exception e){
 			e.printStackTrace();
 		}
-
-
-		// Encrypt the private key using AES/CBC using the passphrase as key
-		
-		// Store the encrypted private key in the file "private.key"
 	}
 	
 	public static PublicKey loadPublicKey(String inputFile) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException{
@@ -116,21 +110,14 @@ public class SimpleSec {
 
 
 	public static void encrypt(String sourceFile, String destinationFile) throws Exception{
-		
-		// Encrypt sourceFile using AES/CBC and a random AES key (session key)
-	
-
-		//generate a random aes key
+		//generate a random AES key (session key)
 		KeyGenerator keyGen = KeyGenerator.getInstance("AES");
 		keyGen.init(128); // for example
 		Key sessionKey = keyGen.generateKey();
-		System.out.println("tamaño sessionn key");
-		System.out.println(sessionKey.getEncoded().length);
-
 		
 		SymmetricCipher e = new SymmetricCipher();
-
-		
+	
+		//get data to encrypt
 		Path path = Paths.get(sourceFile);
         String input = new String();
         try {
@@ -139,6 +126,7 @@ public class SimpleSec {
             ex.printStackTrace();
         }
 
+		// Encrypt sourceFile using AES/CBC and a session key
 		byte[] encryptedFile = e.encryptCBC(input.getBytes(), sessionKey.getEncoded());
 
 		// Session key is encrypted using RSA and the public key
@@ -177,10 +165,6 @@ public class SimpleSec {
 		out.write(finalEnc);
 		out.close();
 
-
-		// The encrypted concatenation is again concatenated with the previously
-		// encrypted session key
-
 		
 	}
 
@@ -201,9 +185,17 @@ public class SimpleSec {
 		System.arraycopy(data, size - 128, signature, 0, 128);
 
 
-		// Verify firm
+		//get public key from file to decrypt the signature
+		PublicKey pubKey = loadPublicKey(PUBLIC_KEY_FILE);
 
-		// Separate ciphertext and encrypted session key
+		//decrypt signature
+		RSALibrary rsa = new RSALibrary();
+		boolean valid = rsa.verify(other, signature, pubKey);
+		if(valid) System.out.println("signature is valid");
+		else System.out.println("signature is not valid");
+
+		// Verify firm
+		Boolean verification = false;
 
 		// As private key is needed, introduce passphrase to decrypt the private.key file, and store the private key
 		Scanner myObj = new Scanner(System.in);  // Create a Scanner object
@@ -223,16 +215,11 @@ public class SimpleSec {
 		PrivateKey privK = loadPrivateKey(PRIVATE_KEY_FILE, byteKey);
 
 		// Decrypt session key using RSA and private key
-		RSALibrary rsa = new RSALibrary();
-
 		byte[] sessionKeyDec = rsa.decrypt(sessionKeyEnc, privK);
 
 		// Use the session key to decrypt the ciphertext using AES/CBC
 		SymmetricCipher s = new SymmetricCipher();
 		byte[] decryptedText = s.decryptCBC(encryptedText, sessionKeyDec);
-
-		//verify
-		//byte[] decKeySignature = rsa.verify(signature, privK);
 
 		// Result is stored int he file args[2]
 		FileOutputStream out = new FileOutputStream(destinationFile);
@@ -242,51 +229,25 @@ public class SimpleSec {
 	}
 
 	public static void main(String[] args) throws Exception{
-		//generate();
-		
-		String sourceFile = "./data/data.txt";
-		String destinationFile = "./data/dst.enc";
-		encrypt(sourceFile, destinationFile);
-		System.out.println("Keys created");
-		
-
-		String sourceFile2 = "./data/dst.enc";
-		String destinationFile2 = "./data/dst.dec";
-		decrypt(sourceFile2, destinationFile2);
-		System.out.println("Keys created");
-		
-		
-		/*
-		switch (var) {
+		switch (args[0]) {
 			case "g": 
 				generate();
+				System.out.println("Keys created");
+				break;
 			case "e":
 				String sourceFile = "./data/data.txt";
 				String destinationFile = "./data/dst.enc";
-				System.out.println("!==================================!");
-				//String sourceFile = args[1];
-				//String destinationFile = args[2];
-				//encrypt(sourceFile, destinationFile);
-				
+				encrypt(sourceFile, destinationFile);
+				break;
 			case "d":
-				// Separate firm and payload
-
-				// Verify firm
-
-				// Separate ciphertext and encrypted session key
-
-				// As private key is needed, introduce passphrase to decrypt the private.key file, and store the private key
-
-				// Decrypt session key using RSA and private key
-
-				// Use the session key to decrypt the ciphertext using AES/CBC
-
-				// Result is stored int he file args[2]
+				String sourceFile2 = "./data/dst.enc";
+				String destinationFile2 = "./data/dst.dec";
+				decrypt(sourceFile2, destinationFile2);
+				break;
 			default:
-				
 				System.out.println("Error!");
+				break;
 			}
-			*/
 
 	}
 }

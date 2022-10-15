@@ -137,7 +137,7 @@ public class RSALibrary {
 
 	boolean result = false;
 
-    try {
+  try {
 
  	 // Gets a Signature object
      Signature signature = Signature.getInstance("SHA1withRSA");
