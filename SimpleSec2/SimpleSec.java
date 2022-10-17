@@ -3,7 +3,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -169,7 +168,6 @@ public class SimpleSec {
 		FileOutputStream out = new FileOutputStream(destinationFile);
 		out.write(finalEnc);
 		out.close();
-
 		
 	}
 
@@ -244,15 +242,34 @@ public class SimpleSec {
 				System.out.println("Keys created");
 				break;
 			case "e":
-				String sourceFile = "./data/data.txt";
-				String destinationFile = "./data/dst.enc";
-				encrypt(sourceFile, destinationFile);
+				if(args.length != 3) {
+					System.out.println("Using default sourceFile [./data/data.txt] and destinationFile [./data/dst.enc]");
+					String sourceFile = "./data/data.txt";
+					String destinationFile = "./data/dst.enc";
+					encrypt(sourceFile, destinationFile);
+				} else {
+					String sourceFile = args[1];
+					String destinationFile = args[2];
+					System.out.println("Using sourceFile and destinationFile chosen by the user");
+					encrypt(sourceFile, destinationFile);
+				}
+				System.out.println("File encrypted");
 				break;
 			case "d":
-				String sourceFile2 = "./data/dst.enc";
-				String destinationFile2 = "./data/dst.dec";
-				decrypt(sourceFile2, destinationFile2);
+				if(args.length != 3) {
+					System.out.println("Using default sourceFile [./data/data.txt] and destinationFile [./data/dst.enc]");
+					String sourceFile2 = "./data/dst.enc";
+					String destinationFile2 = "./data/dst.dec";
+					decrypt(sourceFile2, destinationFile2);
+				} else {
+					String sourceFile2 = args[1];
+					String destinationFile2 = args[2];
+					System.out.println("Using sourceFile and destinationFile chosen by the user");
+					decrypt(sourceFile2, destinationFile2);
+				}
+				System.out.println("File decrypted");
 				break;
+
 			default:
 				System.out.println("Error!");
 				break;
