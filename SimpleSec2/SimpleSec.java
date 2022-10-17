@@ -33,10 +33,15 @@ public class SimpleSec {
 	public static void generate(){
 		//"Introduce passphrase:"
 		Scanner myObj = new Scanner(System.in);  // Create a Scanner object
-		System.out.println("Enter password for encrypting private key");
+		System.out.println("Enter passfrase for encrypting private key");
+		System.out.println("This passfrase must be 16 characters long");
 
 		String passphrase = myObj.nextLine();	// Read user input
 		byte[] byteKey = passphrase.getBytes();  
+		if(byteKey.length != 16){
+			System.out.println("Error, enter a 16 character passphrase");
+			System.exit(0);
+		}
 
 		//Create public and private key using RSALibrary
 		RSALibrary rsa = new RSALibrary();
@@ -145,7 +150,7 @@ public class SimpleSec {
 		// As the private key is needed, the user will insert the previous
 		// passphrase in order to decrypt the "private.key" file
 		Scanner myObj = new Scanner(System.in);  // Create a Scanner object
-		System.out.println("Enter passphrase for signing the document");
+		System.out.println("Enter passphrase for signing the document with the Private key");
 		String passphrase = myObj.nextLine();	// Read user input
 		byte[] byteKey = passphrase.getBytes();
 
@@ -190,16 +195,20 @@ public class SimpleSec {
 
 		//decrypt signature
 		RSALibrary rsa = new RSALibrary();
-		boolean valid = rsa.verify(other, signature, pubKey);
-		if(valid) System.out.println("signature is valid");
-		else System.out.println("signature is not valid");
-
+		
+		
 		// Verify firm
-		Boolean verification = false;
+		boolean valid = rsa.verify(other, signature, pubKey);
+		if(valid) System.out.println("Signature is valid");
+		else {
+			System.out.println("Signature is not valid");
+			System.out.println("Exiting program");
+			return;
+		}
 
 		// As private key is needed, introduce passphrase to decrypt the private.key file, and store the private key
 		Scanner myObj = new Scanner(System.in);  // Create a Scanner object
-		System.out.println("Enter password for encrypting private key");
+		System.out.println("Enter passphrase for decrypting the private key");
 
 		String passphrase = myObj.nextLine();	// Read user input
 		byte[] byteKey = passphrase.getBytes();  
