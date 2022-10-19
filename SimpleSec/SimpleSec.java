@@ -3,6 +3,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -32,15 +33,10 @@ public class SimpleSec {
 	public static void generate(){
 		//"Introduce passphrase:"
 		Scanner myObj = new Scanner(System.in);  // Create a Scanner object
-		System.out.println("Enter passfrase for encrypting private key");
-		System.out.println("This passfrase must be 16 characters long");
+		System.out.println("Enter password for encrypting private key");
 
 		String passphrase = myObj.nextLine();	// Read user input
 		byte[] byteKey = passphrase.getBytes();  
-		if(byteKey.length != 16){
-			System.out.println("Error, enter a 16 character passphrase");
-			System.exit(0);
-		}
 
 		//Create public and private key using RSALibrary
 		RSALibrary rsa = new RSALibrary();
@@ -149,7 +145,7 @@ public class SimpleSec {
 		// As the private key is needed, the user will insert the previous
 		// passphrase in order to decrypt the "private.key" file
 		Scanner myObj = new Scanner(System.in);  // Create a Scanner object
-		System.out.println("Enter passphrase for signing the document with the Private key");
+		System.out.println("Enter passphrase for signing the document");
 		String passphrase = myObj.nextLine();	// Read user input
 		byte[] byteKey = passphrase.getBytes();
 
@@ -168,6 +164,7 @@ public class SimpleSec {
 		FileOutputStream out = new FileOutputStream(destinationFile);
 		out.write(finalEnc);
 		out.close();
+
 		
 	}
 
@@ -193,20 +190,16 @@ public class SimpleSec {
 
 		//decrypt signature
 		RSALibrary rsa = new RSALibrary();
-		
-		
-		// Verify firm
 		boolean valid = rsa.verify(other, signature, pubKey);
-		if(valid) System.out.println("Signature is valid");
-		else {
-			System.out.println("Signature is not valid");
-			System.out.println("Exiting program");
-			return;
-		}
+		if(valid) System.out.println("signature is valid");
+		else System.out.println("signature is not valid");
+
+		// Verify firm
+		Boolean verification = false;
 
 		// As private key is needed, introduce passphrase to decrypt the private.key file, and store the private key
 		Scanner myObj = new Scanner(System.in);  // Create a Scanner object
-		System.out.println("Enter passphrase for decrypting the private key");
+		System.out.println("Enter password for encrypting private key");
 
 		String passphrase = myObj.nextLine();	// Read user input
 		byte[] byteKey = passphrase.getBytes();  
@@ -236,41 +229,21 @@ public class SimpleSec {
 	}
 
 	public static void main(String[] args) throws Exception{
-		
 		switch (args[0]) {
 			case "g": 
 				generate();
 				System.out.println("Keys created");
 				break;
 			case "e":
-				if(args.length != 3) {
-					System.out.println("Using default sourceFile [./data/data.txt] and destinationFile [./data/dst.enc]");
-					String sourceFile = "./data/data.txt";
-					String destinationFile = "./data/dst.enc";
-					encrypt(sourceFile, destinationFile);
-				} else {
-					String sourceFile = args[1];
-					String destinationFile = args[2];
-					System.out.println("Using sourceFile and destinationFile chosen by the user");
-					encrypt(sourceFile, destinationFile);
-				}
-				System.out.println("File encrypted");
+				String sourceFile = "./data/data.txt";
+				String destinationFile = "./data/dst.enc";
+				encrypt(sourceFile, destinationFile);
 				break;
 			case "d":
-				if(args.length != 3) {
-					System.out.println("Using default sourceFile [./data/data.txt] and destinationFile [./data/dst.enc]");
-					String sourceFile2 = "./data/dst.enc";
-					String destinationFile2 = "./data/dst.dec";
-					decrypt(sourceFile2, destinationFile2);
-				} else {
-					String sourceFile2 = args[1];
-					String destinationFile2 = args[2];
-					System.out.println("Using sourceFile and destinationFile chosen by the user");
-					decrypt(sourceFile2, destinationFile2);
-				}
-				System.out.println("File decrypted");
+				String sourceFile2 = "./data/dst.enc";
+				String destinationFile2 = "./data/dst.dec";
+				decrypt(sourceFile2, destinationFile2);
 				break;
-
 			default:
 				System.out.println("Error!");
 				break;
